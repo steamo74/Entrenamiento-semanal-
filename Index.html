@@ -1,0 +1,194 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0878c9">
+<link rel="manifest" href="manifest.json">
+<title>Mi entrenamiento semanal</title>
+<style>
+:root{--blue:#0878c9;--navy:#102a56;--light:#eef8ff;--line:#b8dcf5;--green:#159447;--muted:#698399}
+*{box-sizing:border-box}
+body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:#f7fbff;color:var(--navy)}
+header{background:linear-gradient(135deg,#0878c9,#075da5);color:white;padding:26px 18px 21px;text-align:center;border-radius:0 0 24px 24px}
+h1{font-size:24px;margin:0 0 5px;font-weight:800}.subtitle{font-size:14px;opacity:.95}
+.container{max-width:620px;margin:auto;padding:16px}
+.weeknav{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:12px}
+.navbtn,.todaybtn,.reset{border:0;background:#eaf5fc;color:#245b7c;padding:10px 12px;border-radius:12px;font-weight:800}
+.weeklabel{text-align:center;font-size:14px;font-weight:800;flex:1}
+.summary{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px}
+.metric{background:white;border:1px solid var(--line);border-radius:17px;padding:14px;box-shadow:0 3px 12px #0b5c8a12}
+.metricTop{display:flex;justify-content:space-between;align-items:center;font-weight:800}
+.metricNum{font-size:20px}.bar{height:9px;background:#e4eef5;border-radius:8px;margin-top:10px;overflow:hidden}.fill{height:100%;background:var(--green);border-radius:8px;transition:.25s}
+.total{background:white;border:1px solid var(--line);border-radius:17px;padding:14px;margin-bottom:14px;text-align:center;font-weight:800}
+.day{background:white;border:1px solid var(--line);border-radius:18px;margin:11px 0;padding:14px;box-shadow:0 2px 8px #0b5c8a0d}
+.daytop{display:flex;justify-content:space-between;align-items:center;margin-bottom:11px}.weekday{font-size:17px;font-weight:900}.date{font-size:12px;color:var(--muted);font-weight:700}
+.activity{border:1px solid #dcecf6;border-radius:15px;padding:11px;margin-top:9px}
+.activityHead{display:flex;align-items:center;gap:10px}
+.check{width:31px;height:31px;border-radius:50%;border:2px solid #a7c5d8;background:white;flex:none;font-size:19px;font-weight:900;color:white;display:flex;align-items:center;justify-content:center}
+.activity.done .check{background:var(--green);border-color:var(--green)}
+.activityTitle{font-weight:850;flex:1}.selected{font-size:12px;color:#45657c;margin-top:3px;line-height:1.35}
+.options{display:flex;flex-wrap:wrap;gap:7px;margin-top:10px}
+.chip{border:1px solid #bfd8e8;background:#f7fbfe;color:#315d78;border-radius:999px;padding:8px 10px;font-size:13px;font-weight:750}
+.chip.on{background:#dff4e6;border-color:#8fd1a7;color:#126b35}
+.note{font-size:12px;color:#71879a;margin:8px 2px 0}
+.history{background:white;border:1px solid var(--line);border-radius:18px;padding:14px;margin-top:16px}
+.historyTop{display:flex;justify-content:space-between;font-weight:850;margin-bottom:5px}
+.historyRow{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;padding:10px 0;border-bottom:1px solid #e8f0f5;align-items:center;font-size:14px}
+.historyRow:last-child{border-bottom:0}.historyHead{font-weight:800;font-size:12px;color:#698399}.historyNum{text-align:center;font-weight:800}.historyDate{font-weight:700}
+footer{text-align:center;color:#71879a;font-size:12px;padding:20px}
+@media(max-width:390px){.summary{grid-template-columns:1fr 1fr}.metric{padding:12px}.chip{padding:8px 9px}}
+</style>
+</head>
+<body>
+<header><h1>PLAN SEMANAL · ENTRENAMIENTO</h1><div class="subtitle">Objetivo semanal: 3 cardio + 4 fuerza</div></header>
+<main class="container">
+  <div class="weeknav">
+    <button class="navbtn" onclick="moveWeek(-1)">‹</button>
+    <div class="weeklabel" id="weekLabel"></div>
+    <button class="navbtn" onclick="moveWeek(1)">›</button>
+  </div>
+  <div style="text-align:center;margin:-3px 0 12px"><button class="todaybtn" onclick="goCurrentWeek()">Semana actual</button></div>
+
+  <section class="summary">
+    <div class="metric"><div class="metricTop"><span>❤️ Cardio</span><span class="metricNum" id="cardioCount">0 / 3</span></div><div class="bar"><div class="fill" id="cardioFill"></div></div></div>
+    <div class="metric"><div class="metricTop"><span>💪 Fuerza</span><span class="metricNum" id="strengthCount">0 / 4</span></div><div class="bar"><div class="fill" id="strengthFill"></div></div></div>
+  </section>
+  <section class="total" id="total">🎯 Objetivo total: 0 / 7 · 0%</section>
+
+  <div id="days"></div>
+
+  <section class="history">
+    <div class="historyTop"><span>Historial semanal</span><span>Cardio · Fuerza</span></div>
+    <div id="history"></div>
+  </section>
+
+  <footer><button class="reset" onclick="resetWeek()">Reiniciar esta semana</button><br><br>Los datos se guardan automáticamente en este iPhone.</footer>
+</main>
+<script>
+const cardioOptions=["Elíptica","Cinta mecánica"];
+const strengthOptions=["Piernas","Espalda","Hombros","Pecho","Bíceps","Tríceps","Core"];
+const dayNames=["Lunes","Martes","Miércoles","Jueves","Viernes","Sábado","Domingo"];
+let weekOffset=0;
+
+function mondayForOffset(offset=0){
+  const now=new Date();
+  now.setHours(12,0,0,0);
+  const monday=new Date(now);
+  monday.setDate(now.getDate()-((now.getDay()+6)%7)+(offset*7));
+  return monday;
+}
+function isoLocal(d){
+  const y=d.getFullYear(),m=String(d.getMonth()+1).padStart(2,"0"),day=String(d.getDate()).padStart(2,"0");
+  return `${y}-${m}-${day}`;
+}
+function weekId(){return isoLocal(mondayForOffset(weekOffset))}
+function storageKey(){return "entrenamiento-v2-"+weekId()}
+function loadState(){return JSON.parse(localStorage.getItem(storageKey())||"{}")}
+function saveState(state){
+  localStorage.setItem(storageKey(),JSON.stringify(state));
+  saveHistory(state);
+}
+function dayState(state,i){
+  if(!state[i]) state[i]={cardio:{done:false,type:""},strength:{done:false,groups:[]}};
+  if(!state[i].cardio) state[i].cardio={done:false,type:""};
+  if(!state[i].strength) state[i].strength={done:false,groups:[]};
+  return state[i];
+}
+function formatWeek(){
+  const start=mondayForOffset(weekOffset),end=new Date(start);end.setDate(start.getDate()+6);
+  const f=d=>d.toLocaleDateString("es-ES",{day:"2-digit",month:"short"});
+  return `${f(start)} – ${f(end)}`;
+}
+function render(){
+  const state=loadState();
+  document.getElementById("weekLabel").textContent=formatWeek();
+  const days=document.getElementById("days"); days.innerHTML="";
+
+  dayNames.forEach((name,i)=>{
+    const ds=dayState(state,i);
+    const date=new Date(mondayForOffset(weekOffset));date.setDate(date.getDate()+i);
+    const cardioSel=ds.cardio.type||"Sin seleccionar";
+    const strengthSel=(ds.strength.groups||[]).length?ds.strength.groups.join(" · "):"Sin seleccionar";
+    const card=document.createElement("section");card.className="day";
+    card.innerHTML=`
+      <div class="daytop"><div class="weekday">${name}</div><div class="date">${date.toLocaleDateString("es-ES",{day:"2-digit",month:"2-digit"})}</div></div>
+      <div class="activity ${ds.cardio.done?"done":""}">
+        <div class="activityHead">
+          <button class="check cardioCheck" aria-label="Marcar cardio">${ds.cardio.done?"✓":""}</button>
+          <div style="flex:1"><div class="activityTitle">❤️ Cardio</div><div class="selected">${cardioSel}</div></div>
+        </div>
+        <div class="options cardioOpts">${cardioOptions.map(x=>`<button class="chip ${ds.cardio.type===x?"on":""}" data-value="${x}">${x}</button>`).join("")}</div>
+      </div>
+      <div class="activity ${ds.strength.done?"done":""}">
+        <div class="activityHead">
+          <button class="check strengthCheck" aria-label="Marcar fuerza">${ds.strength.done?"✓":""}</button>
+          <div style="flex:1"><div class="activityTitle">💪 Fuerza</div><div class="selected">${strengthSel}</div></div>
+        </div>
+        <div class="options strengthOpts">${strengthOptions.map(x=>`<button class="chip ${(ds.strength.groups||[]).includes(x)?"on":""}" data-value="${x}">${x}</button>`).join("")}</div>
+      </div>`;
+
+    card.querySelector(".cardioCheck").onclick=()=>{
+      ds.cardio.done=!ds.cardio.done; saveState(state); render();
+    };
+    card.querySelectorAll(".cardioOpts .chip").forEach(btn=>btn.onclick=()=>{
+      ds.cardio.type=btn.dataset.value;
+      ds.cardio.done=true;
+      saveState(state);render();
+    });
+    card.querySelector(".strengthCheck").onclick=()=>{
+      ds.strength.done=!ds.strength.done; saveState(state);render();
+    };
+    card.querySelectorAll(".strengthOpts .chip").forEach(btn=>btn.onclick=()=>{
+      const v=btn.dataset.value, arr=ds.strength.groups||[];
+      const p=arr.indexOf(v); if(p>=0) arr.splice(p,1); else arr.push(v);
+      ds.strength.groups=arr; ds.strength.done=arr.length>0;
+      saveState(state);render();
+    });
+    days.appendChild(card);
+  });
+
+  const all=Object.keys(state).map(k=>dayState(state,k));
+  const cardio=all.filter(x=>x.cardio.done).length;
+  const strength=all.filter(x=>x.strength.done).length;
+  document.getElementById("cardioCount").textContent=`${cardio} / 3`;
+  document.getElementById("strengthCount").textContent=`${strength} / 4`;
+  document.getElementById("cardioFill").style.width=Math.min(cardio/3*100,100)+"%";
+  document.getElementById("strengthFill").style.width=Math.min(strength/4*100,100)+"%";
+  const achieved=Math.min(cardio,3)+Math.min(strength,4);
+  const pct=Math.round(achieved/7*100);
+  document.getElementById("total").textContent=`🎯 Objetivo total: ${achieved} / 7 · ${pct}%${achieved===7?" · ¡Semana completada!":""}`;
+  renderHistory();
+}
+function saveHistory(state){
+  let h=JSON.parse(localStorage.getItem("entrenamiento-history-v2")||"{}");
+  const all=Object.keys(state).map(k=>dayState(state,k));
+  h[weekId()]={cardio:all.filter(x=>x.cardio.done).length,fuerza:all.filter(x=>x.strength.done).length};
+  localStorage.setItem("entrenamiento-history-v2",JSON.stringify(h));
+}
+function renderHistory(){
+  const box=document.getElementById("history");
+  const h=JSON.parse(localStorage.getItem("entrenamiento-history-v2")||"{}");
+  const dates=Object.keys(h).sort().reverse().slice(0,10);
+  let out=`<div class="historyRow historyHead"><div>Semana</div><div class="historyNum">Cardio</div><div class="historyNum">Fuerza</div></div>`;
+  if(!dates.length) out+=`<div class="note">El historial aparecerá cuando marques tu primer entrenamiento.</div>`;
+  dates.forEach(id=>{
+    const d=new Date(id+"T12:00:00"),end=new Date(d);end.setDate(d.getDate()+6);
+    const label=d.toLocaleDateString("es-ES",{day:"2-digit",month:"2-digit"})+" – "+end.toLocaleDateString("es-ES",{day:"2-digit",month:"2-digit"});
+    out+=`<div class="historyRow"><div class="historyDate">${label}</div><div class="historyNum">${h[id].cardio}/3</div><div class="historyNum">${h[id].fuerza}/4</div></div>`;
+  });
+  box.innerHTML=out;
+}
+function moveWeek(n){weekOffset+=n;render()}
+function goCurrentWeek(){weekOffset=0;render()}
+function resetWeek(){
+  if(confirm("¿Reiniciar todos los registros de esta semana?")){
+    localStorage.removeItem(storageKey());
+    let h=JSON.parse(localStorage.getItem("entrenamiento-history-v2")||"{}");delete h[weekId()];
+    localStorage.setItem("entrenamiento-history-v2",JSON.stringify(h));render();
+  }
+}
+render();
+</script>
+</body>
+</html>
