@@ -1,0 +1,9 @@
+{
+  "name":"Mi entrenamiento semanal",
+  "short_name":"Entrenamiento",
+  "start_url":"./index.html",
+  "display":"standalone",
+  "background_color":"#f7fbff",
+  "theme_color":"#0878c9",
+  "icons":[]
+}
